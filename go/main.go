@@ -157,24 +157,3 @@ func main() {
 		fmt.Println(queue)
 	}
 }
-
-//Este comentario es de Benaventi
-//va mira, lo que falta es la cola, que esa creo que la podemos hacer facil, eso solo tenemos que hacer uC
-// creo que son las url segun faltan de hacer, o sea entra un mono y tiene que buscar una url, pero hay ciertos momentos en los que la cola tiene varias url
-// a las cuales tiene que visitar, entonces eso es todo, si queres seguime y probamos
-// en ese caso no podriamos usar un queue qye ya tenga golang vdd?
-// si podemos, yo te iba a decir que usaramos un slice, porque ahi podemos usar append, creo que push y pop, porque algo asi necesitamos
-// creo que mas que nada es un push y pop
-// lo que no se es donde podriamos ir mostrando la lista, si mostrarla cada vez que agregemos un elemento, o irla escribiendo en un archivo, eso si no se
-
-//ps creo que si se podria en un archivo y que se vaya leyendo._
-// ahora con el queue lo que te pregunto es que si tiene que ser algun tipo de archvio especial o puede ser un string
-// o si golang tiene algun tipo para URL?
-// yo digo que string igual lo vamos a escribir despues
-
-// solo voy a probar que onda con las colas, porque creo que podemos usar apend y extract, ahorita reviso dame chance
-// vaa pero no seria en un queue sino en otra estructura o si?
-// yo digo que si, o cual pensabas usar vos? no es una lista como tal, es un slice, que es diferente, pero en este caso nos sirve
-// no se si hay tipo queue en go, alguno ya implementado, porque si no tendriamos que crearlo nosotros
-
-//no he usado un slice pero si crees que nos sirve mas que un queue puedo ver como implementarlo
