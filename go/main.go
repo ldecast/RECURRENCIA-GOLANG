@@ -143,7 +143,6 @@ func main() {
 	}
 
 	jobs <- Task{url_inicial, n_r}
-	jobs <- Task{url_inicial, n_r}
 
 	for r := range results {
 		// before := <-results
