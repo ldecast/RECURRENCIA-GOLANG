@@ -34,8 +34,9 @@ type Result struct {
 
 var cantidad_monos, tamano_cola, n_r int
 var url_inicial, nombre_archivo string
+var queue []string
 
-func worker(jobs <-chan Task, results chan<- Task) {
+func worker(jobs <-chan Task, results chan<- Task, id int) {
 	for j := range jobs {
 		Url := j.Url
 		Nr := j.Referencias
@@ -51,29 +52,25 @@ func worker(jobs <-chan Task, results chan<- Task) {
 
 		c.OnHTML("div#mw-content-text p", func(e *colly.HTMLElement) {
 			conteo_palabras += len(strings.Split(e.Text, " "))
-			// fmt.Println(e)
-			// fmt.Println("conteo de palabras", conteo_palabras)
 		})
 
 		c.OnHTML("div#mw-content-text p a", func(e *colly.HTMLElement) {
-			// fmt.Println(e.Attr("href"), "href ")
 			if conteo < Nr {
 				aux = e.Request.AbsoluteURL(e.Attr("href"))
-				// fmt.Println(aux)
 				results <- Task{aux, Nr - 1}
 				conteo = conteo + 1
 			}
 		})
 		c.Visit(Url)
+		fmt.Println("mono: 				" + strconv.Itoa(id))
 		conteo_string := strconv.Itoa(conteo_palabras)
 		after := <-jobs
-		escribirArchivo("{")
-		escribirArchivo("\"origen\":\"" + newSha(Url) + "\",")
-		escribirArchivo("\"conteo_palabras\":" + conteo_string + ",")
-		escribirArchivo("\"conteo_enlaces\":" + strconv.Itoa(conteo) + ",")
-		escribirArchivo("\"sha\":\"" + newSha(after.Url) + "\",")
-		escribirArchivo("\"url\":\"" + (after.Url) + "\"")
-		escribirArchivo("},")
+		tofile := "{\n\"origen\":\"" + newSha(Url) + "\",\n\"conteo_palabras\":" + conteo_string + ",\n\"conteo_enlaces\":" + strconv.Itoa(conteo) + ",\n\"sha\":\"" + newSha(after.Url) + "\",\n\"url\":\"" + (after.Url) + "\",\n\"id_mono\":\"monin" + strconv.Itoa(id) + "\"\n},"
+		if len(queue) > 0 {
+			queue = queue[:len(queue)-1]
+		}
+		escribirArchivo(tofile)
+		fmt.Println(queue)
 		time.Sleep(time.Duration(500/500) * time.Second)
 	}
 }
@@ -91,7 +88,7 @@ func init_values() {
 
 	fmt.Print("Cantidad de monos buscadores: ")
 	// fmt.Scan(&cantidad_monos)
-	cantidad_monos = 1
+	cantidad_monos = 3
 
 	fmt.Print("Tamaño de la cola de espera: ")
 	// fmt.Scan(&tamano_cola)
@@ -124,10 +121,12 @@ func escribirArchivo(contenido string) {
 		return
 	}
 	anterior, err := ioutil.ReadFile(nombre_archivo + ".json")
-	if len(anterior) > 2 {
-		anterior = anterior[:len(anterior)-2]
+	lenstr := strconv.Itoa(len(queue))
+	if len(anterior) > 14 {
+		desfase := 13 + len(lenstr)
+		anterior = anterior[:len(anterior)-desfase]
 	}
-	_, err1 := file.WriteString(string(anterior) + contenido + "\n]\n")
+	_, err1 := file.WriteString(string(anterior) + contenido + "\n{\"cola\": " + lenstr + "}\n]\n")
 	if err1 != nil {
 		fmt.Println(err1)
 	}
@@ -139,8 +138,11 @@ func main() {
 	jobs := make(chan Task, 100)
 	results := make(chan Task, 100)
 	escribirArchivo("[")
-	go worker(jobs, results)
+	for i := 0; i < cantidad_monos; i++ {
+		go worker(jobs, results, i)
+	}
 
+	jobs <- Task{url_inicial, n_r}
 	jobs <- Task{url_inicial, n_r}
 
 	for r := range results {
@@ -152,5 +154,28 @@ func main() {
 		fmt.Println(r)
 		jobs <- r
 		jobs <- r
+		queue = append([]string{r.Url}, queue...)
+		fmt.Println(queue)
 	}
 }
+
+//Este comentario es de Benaventi
+//va mira, lo que falta es la cola, que esa creo que la podemos hacer facil, eso solo tenemos que hacer uC
+// creo que son las url segun faltan de hacer, o sea entra un mono y tiene que buscar una url, pero hay ciertos momentos en los que la cola tiene varias url
+// a las cuales tiene que visitar, entonces eso es todo, si queres seguime y probamos
+// en ese caso no podriamos usar un queue qye ya tenga golang vdd?
+// si podemos, yo te iba a decir que usaramos un slice, porque ahi podemos usar append, creo que push y pop, porque algo asi necesitamos
+// creo que mas que nada es un push y pop
+// lo que no se es donde podriamos ir mostrando la lista, si mostrarla cada vez que agregemos un elemento, o irla escribiendo en un archivo, eso si no se
+
+//ps creo que si se podria en un archivo y que se vaya leyendo._
+// ahora con el queue lo que te pregunto es que si tiene que ser algun tipo de archvio especial o puede ser un string
+// o si golang tiene algun tipo para URL?
+// yo digo que string igual lo vamos a escribir despues
+
+// solo voy a probar que onda con las colas, porque creo que podemos usar apend y extract, ahorita reviso dame chance
+// vaa pero no seria en un queue sino en otra estructura o si?
+// yo digo que si, o cual pensabas usar vos? no es una lista como tal, es un slice, que es diferente, pero en este caso nos sirve
+// no se si hay tipo queue en go, alguno ya implementado, porque si no tendriamos que crearlo nosotros
+
+//no he usado un slice pero si crees que nos sirve mas que un queue puedo ver como implementarlo
