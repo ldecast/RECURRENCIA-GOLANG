@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -32,11 +33,17 @@ type Result struct {
 	Mono            string `json:"mono"`
 }
 
+type ResultFile struct {
+	Results []Result
+	Cola    int
+}
+
 var cantidad_monos, tamano_cola, n_r int
 var url_inicial, nombre_archivo string
-var queue []string
+var queuesize int
 var origen bool = true
 var anterior string
+var resultFile ResultFile
 
 func worker(jobs <-chan Task, results chan<- Task, id int) {
 	for j := range jobs {
@@ -70,16 +77,15 @@ func worker(jobs <-chan Task, results chan<- Task, id int) {
 			anterior = "0"
 			origen = false
 		}
-		conteo_string := strconv.Itoa(conteo_palabras)
+		// conteo_string := strconv.Itoa(conteo_palabras)
 		after := j
-		tofile := "{\n\"origen\":\"" + anterior + "\",\n\"conteo_palabras\":" + conteo_string + ",\n\"conteo_enlaces\":" + strconv.Itoa(conteo_url) + ",\n\"sha\":\"" + newSha(after.Url) + "\",\n\"url\":\"" + (after.Url) + "\",\n\"id_mono\":\"monin" + strconv.Itoa(id) + "\"\n},"
+		// AQUI SE RECUPERAN TODOS LOS DATOS
+		result := Result{anterior, conteo_palabras, conteo_url, newSha(after.Url), after.Url, strconv.Itoa(id)}
+		// tofile := "{\n\"origen\":\"" + anterior + "\",\n\"conteo_palabras\":" + conteo_string + ",\n\"conteo_enlaces\":" + strconv.Itoa(conteo_url) + ",\n\"sha\":\"" + newSha(after.Url) + "\",\n\"url\":\"" + (after.Url) + "\",\n\"id_mono\":\"monin" + strconv.Itoa(id) + "\"\n},"
 		anterior = newSha(j.Url)
 		conteo_url = 0
-		if len(queue) > 0 {
-			queue = queue[:len(queue)-1]
-		}
-		escribirArchivo(tofile)
-		// fmt.Println(queue)
+		queuesize = len(jobs)
+		escribirArchivo(result)
 		time.Sleep(time.Duration(500/500) * time.Second)
 	}
 }
@@ -123,30 +129,26 @@ func init_values() {
 	result_file.Close()
 }
 
-func escribirArchivo(contenido string) {
-	file, err := os.OpenFile(nombre_archivo+".json", os.O_RDWR, 0644)
-	if err != nil {
-		fmt.Print("el archivo no se ha creado")
-		return
-	}
-	anterior, err := ioutil.ReadFile(nombre_archivo + ".json")
-	lenstr := strconv.Itoa(len(queue))
-	if len(anterior) > 14 {
-		desfase := 13 + len(lenstr)
-		anterior = anterior[:len(anterior)-desfase]
-	}
-	_, err1 := file.WriteString(string(anterior) + contenido + "\n{\"cola\": " + lenstr + "}\n]\n")
+func escribirArchivo(contenido Result) {
+	// file, _ := os.OpenFile(nombre_archivo+".json", os.O_RDWR, 0644)
+	resultFile.Results = append(resultFile.Results, contenido)
+	file, _ := json.MarshalIndent(resultFile, "", " ")
+
+	// response, _ := json.Marshal(resultFile)
+
+	err1 := ioutil.WriteFile(nombre_archivo+".json", file, 0644)
+
+	// _, err1 := file.WriteString(string(response))
 	if err1 != nil {
 		fmt.Println(err1)
 	}
-	defer file.Close()
+	// defer file.Close()
 }
 
 func main() {
 	init_values()
 	jobs := make(chan Task, tamano_cola)
-	results := make(chan Task, tamano_cola)
-	escribirArchivo("[")
+	results := make(chan Task, 1000000)
 	for i := 0; i < cantidad_monos; i++ {
 		go worker(jobs, results, i)
 	}
@@ -162,7 +164,9 @@ func main() {
 		// fmt.Println(r)
 		jobs <- r
 		// jobs <- r
-		queue = append([]string{r.Url}, queue...)
+		// queue = append([]string{r.Url}, queue...)
 		// fmt.Println(queue)
 	}
 }
+
+var bVal bool
