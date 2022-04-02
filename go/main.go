@@ -35,6 +35,8 @@ type Result struct {
 var cantidad_monos, tamano_cola, n_r int
 var url_inicial, nombre_archivo string
 var queue []string
+var origen bool = true
+var anterior string
 
 func worker(jobs <-chan Task, results chan<- Task, id int) {
 	for j := range jobs {
@@ -42,6 +44,7 @@ func worker(jobs <-chan Task, results chan<- Task, id int) {
 		Nr := j.Referencias
 
 		conteo_palabras := 0
+		conteo_url := 0
 		conteo := 0
 		aux := ""
 
@@ -55,6 +58,7 @@ func worker(jobs <-chan Task, results chan<- Task, id int) {
 		})
 
 		c.OnHTML("div#mw-content-text p a", func(e *colly.HTMLElement) {
+			conteo_url++
 			if conteo < Nr {
 				aux = e.Request.AbsoluteURL(e.Attr("href"))
 				results <- Task{aux, Nr - 1}
@@ -62,15 +66,20 @@ func worker(jobs <-chan Task, results chan<- Task, id int) {
 			}
 		})
 		c.Visit(Url)
-		fmt.Println("mono: 				" + strconv.Itoa(id))
+		if origen {
+			anterior = "0"
+			origen = false
+		}
 		conteo_string := strconv.Itoa(conteo_palabras)
-		after := <-jobs
-		tofile := "{\n\"origen\":\"" + newSha(Url) + "\",\n\"conteo_palabras\":" + conteo_string + ",\n\"conteo_enlaces\":" + strconv.Itoa(conteo) + ",\n\"sha\":\"" + newSha(after.Url) + "\",\n\"url\":\"" + (after.Url) + "\",\n\"id_mono\":\"monin" + strconv.Itoa(id) + "\"\n},"
+		after := j
+		tofile := "{\n\"origen\":\"" + anterior + "\",\n\"conteo_palabras\":" + conteo_string + ",\n\"conteo_enlaces\":" + strconv.Itoa(conteo_url) + ",\n\"sha\":\"" + newSha(after.Url) + "\",\n\"url\":\"" + (after.Url) + "\",\n\"id_mono\":\"monin" + strconv.Itoa(id) + "\"\n},"
+		anterior = newSha(j.Url)
+		conteo_url = 0
 		if len(queue) > 0 {
 			queue = queue[:len(queue)-1]
 		}
 		escribirArchivo(tofile)
-		fmt.Println(queue)
+		// fmt.Println(queue)
 		time.Sleep(time.Duration(500/500) * time.Second)
 	}
 }
@@ -87,24 +96,24 @@ func init_values() {
 	fmt.Println("")
 
 	fmt.Print("Cantidad de monos buscadores: ")
-	// fmt.Scan(&cantidad_monos)
-	cantidad_monos = 3
+	fmt.Scan(&cantidad_monos)
+	// cantidad_monos = 3
 
 	fmt.Print("Tamaño de la cola de espera: ")
-	// fmt.Scan(&tamano_cola)
-	tamano_cola = 3
+	fmt.Scan(&tamano_cola)
+	// tamano_cola = 3
 
 	fmt.Print("Nr: ")
-	// fmt.Scan(&n_r)
-	n_r = 3
+	fmt.Scan(&n_r)
+	// n_r = 3
 
 	fmt.Print("URL inicial: ")
-	// fmt.Scan(&url_inicial)
-	url_inicial = "https://es.wikipedia.org/wiki/Panavia_Tornado"
+	fmt.Scan(&url_inicial)
+	// url_inicial = "https://es.wikipedia.org/wiki/Panavia_Tornado"
 
 	fmt.Print("Nombre del archivo para el resultado de la búsqueda: ")
-	// fmt.Scan(&nombre_archivo)
-	nombre_archivo = "res"
+	fmt.Scan(&nombre_archivo)
+	// nombre_archivo = "res"
 
 	result_file, e := os.Create(nombre_archivo + ".json")
 	if e != nil {
@@ -135,8 +144,8 @@ func escribirArchivo(contenido string) {
 
 func main() {
 	init_values()
-	jobs := make(chan Task, 100)
-	results := make(chan Task, 100)
+	jobs := make(chan Task, tamano_cola)
+	results := make(chan Task, tamano_cola)
 	escribirArchivo("[")
 	for i := 0; i < cantidad_monos; i++ {
 		go worker(jobs, results, i)
@@ -150,10 +159,10 @@ func main() {
 		// fmt.Println("Visitando resultados")
 		// fmt.Println("id ", r)
 		// fmt.Println(<-results)
-		fmt.Println(r)
+		// fmt.Println(r)
 		jobs <- r
-		jobs <- r
+		// jobs <- r
 		queue = append([]string{r.Url}, queue...)
-		fmt.Println(queue)
+		// fmt.Println(queue)
 	}
 }
