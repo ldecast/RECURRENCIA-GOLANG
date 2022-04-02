@@ -77,11 +77,9 @@ func worker(jobs <-chan Task, results chan<- Task, id int) {
 			anterior = "0"
 			origen = false
 		}
-		// conteo_string := strconv.Itoa(conteo_palabras)
 		after := j
 		// AQUI SE RECUPERAN TODOS LOS DATOS
 		result := Result{anterior, conteo_palabras, conteo_url, newSha(after.Url), after.Url, strconv.Itoa(id)}
-		// tofile := "{\n\"origen\":\"" + anterior + "\",\n\"conteo_palabras\":" + conteo_string + ",\n\"conteo_enlaces\":" + strconv.Itoa(conteo_url) + ",\n\"sha\":\"" + newSha(after.Url) + "\",\n\"url\":\"" + (after.Url) + "\",\n\"id_mono\":\"monin" + strconv.Itoa(id) + "\"\n},"
 		anterior = newSha(j.Url)
 		conteo_url = 0
 		queuesize = len(jobs)
@@ -103,23 +101,18 @@ func init_values() {
 
 	fmt.Print("Cantidad de monos buscadores: ")
 	fmt.Scan(&cantidad_monos)
-	// cantidad_monos = 3
 
 	fmt.Print("Tamaño de la cola de espera: ")
 	fmt.Scan(&tamano_cola)
-	// tamano_cola = 3
 
 	fmt.Print("Nr: ")
 	fmt.Scan(&n_r)
-	// n_r = 3
 
 	fmt.Print("URL inicial: ")
 	fmt.Scan(&url_inicial)
-	// url_inicial = "https://es.wikipedia.org/wiki/Panavia_Tornado"
 
 	fmt.Print("Nombre del archivo para el resultado de la búsqueda: ")
 	fmt.Scan(&nombre_archivo)
-	// nombre_archivo = "res"
 
 	result_file, e := os.Create(nombre_archivo + ".json")
 	if e != nil {
@@ -130,19 +123,12 @@ func init_values() {
 }
 
 func escribirArchivo(contenido Result) {
-	// file, _ := os.OpenFile(nombre_archivo+".json", os.O_RDWR, 0644)
 	resultFile.Results = append(resultFile.Results, contenido)
 	file, _ := json.MarshalIndent(resultFile, "", " ")
-
-	// response, _ := json.Marshal(resultFile)
-
 	err1 := ioutil.WriteFile(nombre_archivo+".json", file, 0644)
-
-	// _, err1 := file.WriteString(string(response))
 	if err1 != nil {
 		fmt.Println(err1)
 	}
-	// defer file.Close()
 }
 
 func main() {
@@ -156,17 +142,6 @@ func main() {
 	jobs <- Task{url_inicial, n_r}
 
 	for r := range results {
-		// before := <-results
-		// escribirArchivo("origen: " + newSha(before.Url))
-		// fmt.Println("Visitando resultados")
-		// fmt.Println("id ", r)
-		// fmt.Println(<-results)
-		// fmt.Println(r)
 		jobs <- r
-		// jobs <- r
-		// queue = append([]string{r.Url}, queue...)
-		// fmt.Println(queue)
 	}
 }
-
-var bVal bool
